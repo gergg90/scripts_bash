@@ -24,17 +24,12 @@ trap ctrl_c INT
 function helpPanel() {
     echo -e "\n${yellowColor}[+]${endColor}${grayColor}Uso:${endColor}"
     echo -e "\t${purpleColor}u)${endColor}${grayColor} Actualiza o descarga el archivo${endColor}"
+    echo -e "\t${purpleColor}i)${endColor}${grayColor} Buscar por direccion IP${endColor}"$
     echo -e "\t${purpleColor}m)${endColor}${grayColor} Buscador de maquinas ${endColor}"
-    echo -e "\t${purpleColor}h)${endColor} ${grayColor} Mostrar panel de ayuda${endColor}\n"
-
-}
-
-function searchMachine() {
-    echo -e "\n ${purpleColor}[+] Esta es la maquina: $1${endColor}"
+    echo -e "\t${purpleColor}h)${endColor}${grayColor} Mostrar panel de ayuda${endColor}\n"
 }
 
 function updateFiles() {
-
     if [ ! -f bundle.js ]; then
         tput civis
         echo -e "\n ${turquesaColor}[+]${endColor}${blueColor} Descargando archivos${endColor}"
@@ -62,6 +57,18 @@ function updateFiles() {
 
         tput cnorm
     fi
+}
+
+function searchMachine() {
+    machineName=$1
+    echo -e "\n${yellowColor} [+]${endColor}${grayColor} Listando las propiedades de la maquina${endColor} ${blueColor}$machineName${endColor}\n"
+    cat bundle.js | awk "/name: \"$machineName\"/, /resuelta:/" | grep -vE "id|sku|resuelta" | tr -d '"' | tr -d ',' | sed 's/^ *//'
+}
+
+function searchIP() {
+    ipAddress=$1
+    machineName="$(cat bundle.js | grep "ip: \"$ipAddress\"" -B 3 | grep "name: " | awk 'NF{print $NF}' | tr -d '",')"
+    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}La maquina correspondiente al ip:${endColor}${blueColor} $ipAddress${endColor}${grayColor}, es:${endColor} ${redColor}$machineName${endColor}\n"
 
 }
 
@@ -69,11 +76,15 @@ function updateFiles() {
 declare -i parameter_counter=0
 
 # argumentos
-while getopts "m:uh" arg; do
+while getopts "m:i:uh" arg; do
     case $arg in
     m)
         machineName=$OPTARG
         let parameter_counter+=1
+        ;;
+    i)
+        ipAddress=$OPTARG
+        let parameter_counter+=3
         ;;
     u)
         let parameter_counter+=2
@@ -87,6 +98,8 @@ if [ $parameter_counter -eq 1 ]; then
     searchMachine $machineName
 elif [ $parameter_counter -eq 2 ]; then
     updateFiles
+elif [ $parameter_counter -eq 3 ]; then
+    searchIP $ipAddress
 else
     helpPanel
 fi
