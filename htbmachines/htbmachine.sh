@@ -24,8 +24,10 @@ trap ctrl_c INT
 function helpPanel() {
     echo -e "\n${yellowColor}[+]${endColor}${grayColor}Uso:${endColor}"
     echo -e "\t${purpleColor}u)${endColor}${grayColor} Actualiza o descarga el archivo${endColor}"
-    echo -e "\t${purpleColor}i)${endColor}${grayColor} Buscar por direccion IP${endColor}"$
     echo -e "\t${purpleColor}m)${endColor}${grayColor} Buscador de maquinas ${endColor}"
+    echo -e "\t${purpleColor}i)${endColor}${grayColor} Buscar por direccion IP${endColor}"
+    echo -e "\t${purpleColor}l)${endColor}${grayColor} Buscar por maquina: para obtener link de youtube${endColor}"
+    echo -e "\t${purpleColor}d)${endColor}${grayColor} Buscar por dificultad:${endColor}\n\t${redColor}opciones ->${endColor} ${grayColor}[ Fácil, Media, Difícil, Insane ]${endColor}"
     echo -e "\t${purpleColor}h)${endColor}${grayColor} Mostrar panel de ayuda${endColor}\n"
 }
 
@@ -48,10 +50,9 @@ function updateFiles() {
             echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Hay actualizaciones${endColor}"
             rm bundle.js
             mv bundle_temp.js bundle.js
-            sleep 3
             echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Archivos actualizados${endColor}"
         else
-            echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}No hay actualizaciones pendientes${endColor}"
+            echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}No hay actualizaciones pendientes${endColor}\n"
             rm bundle_temp.js
         fi
 
@@ -61,33 +62,72 @@ function updateFiles() {
 
 function searchMachine() {
     machineName=$1
-    echo -e "\n${yellowColor} [+]${endColor}${grayColor} Listando las propiedades de la maquina${endColor} ${blueColor}$machineName${endColor}\n"
-    cat bundle.js | awk "/name: \"$machineName\"/, /resuelta:/" | grep -vE "id|sku|resuelta" | tr -d '"' | tr -d ',' | sed 's/^ *//'
-}
+    infoMachine=$(cat bundle.js | awk "/name: \"$machineName\"/, /resuelta:/" | grep -vE "id|sku|resuelta" | tr -d '"' | tr -d ',' | sed 's/^ *//' | sed 's/^/ /' )
+    if [ "$infoMachine" ]; then
+      echo -e "\n${yellowColor} [+]${endColor}${grayColor} Listando las propiedades de la maquina${endColor} ${blueColor}$machineName${endColor}"
+      echo -e "${grayColor}$infoMachine${endColor}\n"
+    else
+      echo -e "\n${yellowColor} [x] ${endColor}${redColor}Maquina no encontrada.${endColor}\n"
+    fi
+
+  }
 
 function searchIP() {
     ipAddress=$1
     machineName="$(cat bundle.js | grep "ip: \"$ipAddress\"" -B 3 | grep "name: " | awk 'NF{print $NF}' | tr -d '",')"
-    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}La maquina correspondiente al ip:${endColor}${blueColor} $ipAddress${endColor}${grayColor}, es:${endColor} ${redColor}$machineName${endColor}\n"
+    if [ "$machineName" ]; then
+      echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}IP:${endColor}${blueColor} $ipAddress${endColor}${grayColor} corresponde a la maquina ${endColor} ${redColor}$machineName\n"
+    else
+      echo -e "\n${yellowColor} [x] ${endColor}${redColor}El IP:${endColor} ${blueColor}$ipAddress${endColor} ${redColor}no corresponde a ninguna maquina.${endColor}\n"
+    fi
+}
 
+function getLinkYoutube(){
+  machineNameLink=$1
+  linkYoutube=$(cat bundle.js | awk "/name: \"$machineNameLink\"/, /youtube/" | sed "s/^ *//" | tr -d '",' | grep youtube |  awk "NF{print $NF}")
+  if [ "$linkYoutube" ]; then
+    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Obteniendo el link de youtube de la maquina:${endColor} ${blueColor}$machineNameLink${endColor}"
+    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Link de youtube:${endColor} ${redColor}$linkYoutube${endColor}\n"
+  else
+    echo -e "\n${yellowColor} [x] ${endColor}${redColor}La maquina proporcionada no existe${endColor}\n"
+  fi
+}
+
+function searchByDifficulty(){
+      difficultyLevel=$1
+      machinesLevel=$(cat bundle.js | grep "dificultad: \"$difficultyLevel\"" -B 5 | grep name | sed "s/^ *//" | tr -d '",' | awk 'NF{print $NF}' | column )
+      if [ "$machinesLevel" ]; then
+        echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas de nivel${endColor} ${redColor}$difficultyLevel${endColor}${grayColor}:${endColor}"
+        echo -e "${grayColor}$machinesLevel${endColor}\n"
+      else
+        echo "no hay maquinas"
+      fi
 }
 
 # indicadores
 declare -i parameter_counter=0
 
 # argumentos
-while getopts "m:i:uh" arg; do
+while getopts "m:i:l:d:uh" arg; do
     case $arg in
     m)
         machineName=$OPTARG
         let parameter_counter+=1
         ;;
+    u)
+        let parameter_counter+=2
+        ;;
     i)
         ipAddress=$OPTARG
         let parameter_counter+=3
         ;;
-    u)
-        let parameter_counter+=2
+    l)
+        machineNameLink=$OPTARG
+        let parameter_counter+=4
+        ;;
+    d) 
+        difficultyLevel=$OPTARG
+        let parameter_counter+=5
         ;;
     h) ;;
     esac
@@ -100,6 +140,10 @@ elif [ $parameter_counter -eq 2 ]; then
     updateFiles
 elif [ $parameter_counter -eq 3 ]; then
     searchIP $ipAddress
+elif [ $parameter_counter -eq 4 ]; then
+    getLinkYoutube $machineNameLink
+elif [ $parameter_counter -eq 5 ]; then
+    searchByDifficulty $difficultyLevel
 else
     helpPanel
 fi
