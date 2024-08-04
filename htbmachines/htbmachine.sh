@@ -27,6 +27,7 @@ function helpPanel() {
     echo -e "\t${purpleColor}m)${endColor}${grayColor} Buscador de maquinas ${endColor}"
     echo -e "\t${purpleColor}i)${endColor}${grayColor} Buscar por direccion IP${endColor}"
     echo -e "\t${purpleColor}l)${endColor}${grayColor} Buscar por maquina: para obtener link de youtube${endColor}"
+    echo -e "\t${purpleColor}o)${endColor}${grayColor} Buscar maquina por sistema operativo SO${endColor}"
     echo -e "\t${purpleColor}d)${endColor}${grayColor} Buscar por dificultad:${endColor}\n\t${redColor}opciones ->${endColor} ${grayColor}[ Fácil, Media, Difícil, Insane ]${endColor}"
     echo -e "\t${purpleColor}h)${endColor}${grayColor} Mostrar panel de ayuda${endColor}\n"
 }
@@ -43,8 +44,8 @@ function updateFiles() {
         echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Comprobando si hay actualizaciones pendientes...${endColor}"
         sleep 2
         curl -s $main_url | js-beautify >bundle_temp.js
-        md5_temp_value=$(md5sum bundle_temp.js | awk '{print $1}')
-        md5_original_value=$(md5sum bundle.js | awk '{print $1}')
+        md5_temp_value="$(md5sum bundle_temp.js | awk '{print $1}')"
+        md5_original_value="$(md5sum bundle.js | awk '{print $1}')"
 
         if [ "$md5_temp_value" != "$md5_original_value" ]; then
             echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Hay actualizaciones${endColor}"
@@ -61,73 +62,104 @@ function updateFiles() {
 }
 
 function searchMachine() {
-    machineName=$1
-    infoMachine=$(cat bundle.js | awk "/name: \"$machineName\"/, /resuelta:/" | grep -vE "id|sku|resuelta" | tr -d '"' | tr -d ',' | sed 's/^ *//' | sed 's/^/ /' )
+    machineName="$1"
+    infoMachine="$(cat bundle.js | grep "name: \"$machineName\"" -i -A 9 | grep -vE 'id:|sku:|resuelta:' | tr -d '"' | tr -d ',' | sed 's/^ *//' | sed 's/^/ /')"
     if [ "$infoMachine" ]; then
-      echo -e "\n${yellowColor} [+]${endColor}${grayColor} Listando las propiedades de la maquina${endColor} ${blueColor}$machineName${endColor}"
-      echo -e "${grayColor}$infoMachine${endColor}\n"
+        echo -e "\n${yellowColor} [+]${endColor}${grayColor} Listando las propiedades de la maquina${endColor} ${blueColor}$machineName${endColor}"
+        echo -e "${grayColor}$infoMachine${endColor}\n"
     else
-      echo -e "\n${yellowColor} [x] ${endColor}${redColor}Maquina no encontrada.${endColor}\n"
+        echo -e "\n${yellowColor} [x] ${endColor}${redColor}Maquina no encontrada.${endColor}\n"
     fi
 
-  }
+}
 
 function searchIP() {
-    ipAddress=$1
+    ipAddress="$1"
     machineName="$(cat bundle.js | grep "ip: \"$ipAddress\"" -B 3 | grep "name: " | awk 'NF{print $NF}' | tr -d '",')"
     if [ "$machineName" ]; then
-      echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}IP:${endColor}${blueColor} $ipAddress${endColor}${grayColor} corresponde a la maquina ${endColor} ${redColor}$machineName\n"
+        echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}IP:${endColor}${blueColor} $ipAddress${endColor}${grayColor} corresponde a la maquina ${endColor} ${redColor}$machineName\n"
     else
-      echo -e "\n${yellowColor} [x] ${endColor}${redColor}El IP:${endColor} ${blueColor}$ipAddress${endColor} ${redColor}no corresponde a ninguna maquina.${endColor}\n"
+        echo -e "\n${yellowColor} [x] ${endColor}${redColor}El IP:${endColor} ${blueColor}$ipAddress${endColor} ${redColor}no corresponde a ninguna maquina.${endColor}\n"
     fi
 }
 
-function getLinkYoutube(){
-  machineNameLink=$1
-  linkYoutube=$(cat bundle.js | awk "/name: \"$machineNameLink\"/, /youtube/" | sed "s/^ *//" | tr -d '",' | grep youtube |  awk "NF{print $NF}")
-  if [ "$linkYoutube" ]; then
-    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Obteniendo el link de youtube de la maquina:${endColor} ${blueColor}$machineNameLink${endColor}"
-    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Link de youtube:${endColor} ${redColor}$linkYoutube${endColor}\n"
+function getLinkYoutube() {
+    machineNameLink="$1"
+    linkYoutube="$(cat bundle.js | grep "name: \"$machineNameLink\"" -A 10 -i | grep "youtube: " | tr -d '",' | awk 'NF{print $NF}')"
+    if [ "$linkYoutube" ]; then
+        echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Obteniendo el link de youtube de la maquina:${endColor} ${blueColor}$machineNameLink${endColor}"
+        echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Link de youtube:${endColor} ${redColor}$linkYoutube${endColor}\n"
+    else
+        echo -e "\n${yellowColor} [x] ${endColor}${redColor}La maquina proporcionada no existe${endColor}\n"
+    fi
+}
+
+function searchByDifficulty() {
+    difficultyLevel="$1"
+    machinesLevel="$(cat bundle.js | grep "dificultad: \"$difficultyLevel\"" -B 5 -i | grep name | sed "s/^ *//" | tr -d '",' | awk 'NF{print $NF}' | column)"
+    if [ "$machinesLevel" ]; then
+        echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas de nivel${endColor} ${redColor}$difficultyLevel${endColor}${grayColor}:${endColor}"
+        echo -e "${grayColor}$machinesLevel${endColor}\n"
+    else
+        echo -e "\n${yellowColor} [x] ${endColor}${redColor}No existe el nivel proporcionado ${endColor}\n"
+    fi
+}
+
+function searchSO(){
+    so="$1"
+    resultSO="$(cat bundle.js | grep "so: \"$so\"" -B 6 -i | grep "name: " | awk 'NF{print $NF}' | tr -d '",' | column )"
+    if [ "$resultSO" ]; then
+    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas con SO${endColor} ${redColor}$so${endColor}${grayColor}:${endColor}"
+    echo -e "${grayColor}$resultSO${endColor}\n"
+    else
+      echo -e "\n${yellowColor} [x] ${endColor}${redColor}No existe ninguna maquina con el sistema operativo: ${blueColor}$so${endColor} ${endColor}\n"
+    fi
+}
+
+function searchDifficultySo(){
+
+  result_df_SO="$(cat bundle.js | grep "so: \"$so\"" -C 5 -i | grep "dificultad: \"$difficultyLevel\"" -B 5 -i | grep "name: " | awk 'NF{print $NF}' | tr -d '",' | column)"
+  if [ "$result_df_SO" ]; then
+    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas con SO${endColor} ${redColor}$so${endColor}${grayColor} y de dificultad${endColor} ${redColor}$difficultyLevel${endColor}${grayColor}:${endColor}"
+    echo -e "${grayColor}$result_df_SO${endColor}\n"
   else
-    echo -e "\n${yellowColor} [x] ${endColor}${redColor}La maquina proporcionada no existe${endColor}\n"
+    echo "Mala busqueda"
   fi
 }
 
-function searchByDifficulty(){
-      difficultyLevel=$1
-      machinesLevel=$(cat bundle.js | grep "dificultad: \"$difficultyLevel\"" -B 5 | grep name | sed "s/^ *//" | tr -d '",' | awk 'NF{print $NF}' | column )
-      if [ "$machinesLevel" ]; then
-        echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas de nivel${endColor} ${redColor}$difficultyLevel${endColor}${grayColor}:${endColor}"
-        echo -e "${grayColor}$machinesLevel${endColor}\n"
-      else
-        echo "no hay maquinas"
-      fi
-}
 
 # indicadores
 declare -i parameter_counter=0
+declare -i difficulty_chivato=0
+declare -i so_chivato=0
 
 # argumentos
-while getopts "m:i:l:d:uh" arg; do
+while getopts "m:i:l:d:o:uh" arg; do
     case $arg in
     m)
-        machineName=$OPTARG
+        machineName="$OPTARG"
         let parameter_counter+=1
         ;;
     u)
         let parameter_counter+=2
         ;;
     i)
-        ipAddress=$OPTARG
+        ipAddress="$OPTARG"
         let parameter_counter+=3
         ;;
     l)
-        machineNameLink=$OPTARG
+        machineNameLink="$OPTARG"
         let parameter_counter+=4
         ;;
-    d) 
-        difficultyLevel=$OPTARG
+    d)
+        difficultyLevel="$OPTARG"
         let parameter_counter+=5
+        let difficulty_chivato=1
+        ;;
+    o)
+        so="$OPTARG"
+        let parameter_counter+=6
+        let so_chivato=1
         ;;
     h) ;;
     esac
@@ -144,6 +176,11 @@ elif [ $parameter_counter -eq 4 ]; then
     getLinkYoutube $machineNameLink
 elif [ $parameter_counter -eq 5 ]; then
     searchByDifficulty $difficultyLevel
+elif [ $parameter_counter -eq 6 ]; then
+    searchSO $so
+elif [ $difficulty_chivato -eq 1 ] && [ $so_chivato -eq 1 ]; then
+    searchDifficultySo $difficulyLevel $so
 else
     helpPanel
 fi
+
