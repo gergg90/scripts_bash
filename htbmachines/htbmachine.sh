@@ -28,6 +28,7 @@ function helpPanel() {
     echo -e "\t${purpleColor}i)${endColor}${grayColor} Buscar por direccion IP${endColor}"
     echo -e "\t${purpleColor}l)${endColor}${grayColor} Buscar por maquina: para obtener link de youtube${endColor}"
     echo -e "\t${purpleColor}o)${endColor}${grayColor} Buscar maquina por sistema operativo SO${endColor}"
+    echo -e "\t${purpleColor}s)${endColor}${grayColor} Buscar maquina por Skills${endColor}"
     echo -e "\t${purpleColor}d)${endColor}${grayColor} Buscar por dificultad:${endColor}\n\t${redColor}opciones ->${endColor} ${grayColor}[ Fácil, Media, Difícil, Insane ]${endColor}"
     echo -e "\t${purpleColor}h)${endColor}${grayColor} Mostrar panel de ayuda${endColor}\n"
 }
@@ -42,7 +43,6 @@ function updateFiles() {
     else
         tput civis
         echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Comprobando si hay actualizaciones pendientes...${endColor}"
-        sleep 2
         curl -s $main_url | js-beautify >bundle_temp.js
         md5_temp_value="$(md5sum bundle_temp.js | awk '{print $1}')"
         md5_original_value="$(md5sum bundle.js | awk '{print $1}')"
@@ -105,25 +105,36 @@ function searchByDifficulty() {
     fi
 }
 
-function searchSO(){
+function searchSO() {
     so="$1"
-    resultSO="$(cat bundle.js | grep "so: \"$so\"" -B 6 -i | grep "name: " | awk 'NF{print $NF}' | tr -d '",' | column )"
+    resultSO="$(cat bundle.js | grep "so: \"$so\"" -B 6 -i | grep "name: " | awk 'NF{print $NF}' | tr -d '",' | column)"
     if [ "$resultSO" ]; then
-    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas con SO${endColor} ${redColor}$so${endColor}${grayColor}:${endColor}"
-    echo -e "${grayColor}$resultSO${endColor}\n"
+        echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas con SO${endColor} ${redColor}$so${endColor}${grayColor}:${endColor}"
+        echo -e "${grayColor}$resultSO${endColor}\n"
     else
-      echo -e "\n${yellowColor} [x] ${endColor}${redColor}No existe ninguna maquina con el sistema operativo: ${blueColor}$so${endColor} ${endColor}\n"
+        echo -e "\n${yellowColor} [x] ${endColor}${redColor}No existe ninguna maquina con el sistema operativo: ${blueColor}$so${endColor} ${endColor}\n"
     fi
 }
 
-function searchDifficultySo(){
+function searchDifficultySo() {
 
-  result_df_SO="$(cat bundle.js | grep "so: \"$so\"" -C 5 -i | grep "dificultad: \"$difficultyLevel\"" -B 5 -i | grep "name: " | awk 'NF{print $NF}' | tr -d '",' | column)"
-  if [ "$result_df_SO" ]; then
-    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas con SO${endColor} ${redColor}$so${endColor}${grayColor} y de dificultad${endColor} ${redColor}$difficultyLevel${endColor}${grayColor}:${endColor}"
-    echo -e "${grayColor}$result_df_SO${endColor}\n"
+    result_df_SO="$(cat bundle.js | grep "so: \"$so\"" -C 5 -i | grep "dificultad: \"$difficultyLevel\"" -B 5 -i | grep "name: " | awk 'NF{print $NF}' | tr -d '",' | column)"
+    if [ "$result_df_SO" ]; then
+        echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas con SO${endColor} ${redColor}$so${endColor}${grayColor} y de dificultad${endColor} ${redColor}$difficultyLevel${endColor}${grayColor}:${endColor}"
+        echo -e "${grayColor}$result_df_SO${endColor}\n"
+    else
+        echo -e "\n${yellowColor} [x] ${endColor}${redColor}No existe ninguna maquina con estas caracteristicas ${endColor}\n"
+    fi
+}
+
+function searchBySkills(){
+  skills="$1"
+  resultSkills="$(cat bundle.js | grep "skills:" -B 6 | grep "$skills" -i -B 6 | grep "name: " | awk 'NF{print $NF}' | tr -d '",' | column)"
+  if [ "$resultSkills" ]; then
+    echo -e "\n ${yellowColor}[+]${endColor} ${grayColor}Listando maquinas por Skills${endColor} ${redColor}$skills${endColor}${grayColor}:${endColor}"
+    echo -e "${grayColor}$resultSkills${endColor}\n"
   else
-    echo "Mala busqueda"
+    echo -e "\n${yellowColor} [x] ${endColor}${redColor}No existe ninguna maquina con estos skills: ${blueColor}$skills${endColor} ${endColor}\n"
   fi
 }
 
@@ -134,7 +145,7 @@ declare -i difficulty_chivato=0
 declare -i so_chivato=0
 
 # argumentos
-while getopts "m:i:l:d:o:uh" arg; do
+while getopts "m:i:l:d:o:s:uh" arg; do
     case $arg in
     m)
         machineName="$OPTARG"
@@ -161,6 +172,10 @@ while getopts "m:i:l:d:o:uh" arg; do
         let parameter_counter+=6
         let so_chivato=1
         ;;
+    s)
+        skills="$OPTARG"
+        let parameter_counter+=7
+        ;;
     h) ;;
     esac
 done
@@ -180,7 +195,8 @@ elif [ $parameter_counter -eq 6 ]; then
     searchSO $so
 elif [ $difficulty_chivato -eq 1 ] && [ $so_chivato -eq 1 ]; then
     searchDifficultySo $difficulyLevel $so
+elif [ $parameter_counter -eq 7 ]; then
+    searchBySkills "$skills"
 else
     helpPanel
 fi
-
