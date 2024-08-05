@@ -11,7 +11,7 @@ turquesaColor="\e[0;36m\033[1m"
 greyColor="\e[0;37m\033[1m"
 
 function ctrl_c() {
-  echo -e "\n [-] Saliendo..."
+  echo -e "\n${redColor}[-] Saliendo...${endColor}\n"
   tput cnorm
   exit 1
 }
@@ -29,22 +29,42 @@ function martingala() {
   echo -e "\n${turquesaColor}[!]${endColor} ${greyColor}Cantidad de dinero actual${endColor} ${blueColor}$money${endColor}"
   echo -ne "${yellowColor}[+]${endColor} ${greyColor}Ingrese dinero a apostar:${endColor} " && read initial_bet
   echo -ne "${yellowColor}[+]${endColor} ${greyColor}Seleccione un si desea apostar a (par/impar):${endColor} " && read par_impar
-  echo -e "${yellowColor}[!!]${endColor} ${greyColor}Se inicial el juego con la cantidad de${endColor} ${yellowColor}($initial_bet$)${endColor} ${greyColor}a los${endColor} ${yellowColor}(# $par_impar)${endColor}"
+  echo -e "${yellowColor}[!]${endColor} ${greyColor}Se inicial el juego con la cantidad de${endColor} ${yellowColor}($initial_bet$)${endColor} ${greyColor}a los${endColor} ${yellowColor}(numeros # $par_impar)${endColor}"
+
+  backup_initial_bet=$initial_bet
 
   tput civis
   while true; do
+    money=$(($money - $initial_bet))
+    echo -e "\n${yellowColor}[+]${endColor} ${greyColor}Cantidad apostada${endColor}${yellowColor} -> $initial_bet$ ${endColor}${greyColor}, saldo restante${endColor}${yellowColor} -> $money$ ${endColor}"
     random_number="$(($RANDOM % 37))"
-    echo -e "\n${yellowColor}[+]${endColor} ${greyColor}Ha salido el numero${endColor} ${blueColor}$random_number${endColor}"
-    if [ "$(($random_number % 2))" -eq 0 ]; then
-      if [ $random_number -eq 0 ]; then
-        echo -e "${redColor}[+] Perdida por ley${endColor}"
-      else
-        echo -e "${yellowColor}[+]${endColor} ${greyColor}Numero par${endColor}"
+    echo -e "${yellowColor}[+]${endColor} ${greyColor}Ha salido el numero${endColor} ${blueColor}$random_number${endColor}"
+    if [ ! "$money" -le 0 ]; then
+      if [ "$par_impar" == "par" ]; then
+        if [ "$(($random_number % 2))" -eq 0 ]; then
+          if [ $random_number -eq 0 ]; then
+            echo -e "${redColor}[+] CERO perdida por ley${endColor}"
+          else
+            echo -e "${yellowColor}[+]${endColor} ${greenColor}Numero par. GANASTE!! ${endColor}"
+            reward=$(($initial_bet * 2))
+            echo -e "${yellowColor}[+]${endColor} ${greyColor}Ganas un total de${endColor} ${yellowColor}$reward$ ${endColor}"
+            money=$(($money + $reward))
+            echo -e "${yellowColor}[+]${endColor} ${greyColor}Saldo total:${endColor} ${yellowColor}$money$ ${endColor}"
+            initial_bet=$backup_initial_bet
+          fi
+        else
+
+          echo -e "${yellowColor}[+]${endColor} ${redColor}Numero impar. Perdiste!! ${endColor}"
+          echo -e "${yellowColor}[+]${endColor} ${greyColor}Saldo total:${endColor} ${yellowColor}$money$ ${endColor}"
+          initial_bet=$(($initial_bet * 2))
+        fi
+        sleep 2
       fi
     else
-      echo -e "${yellowColor}[+]${endColor} ${greyColor}Numero impar${endColor}"
+      echo -e "\n te has quedado sin pasta"
+      exit 0
     fi
-    sleep 0.5
+
   done
   tput cnorm
 }
