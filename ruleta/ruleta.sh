@@ -43,7 +43,9 @@ function martingala() {
       if [ "$par_impar" == "par" ]; then
         if [ "$(($random_number % 2))" -eq 0 ]; then
           if [ $random_number -eq 0 ]; then
-            echo -e "${redColor}[+] CERO perdida por ley${endColor}"
+                  echo -e "${yellowColor}[+]${endColor} ${redColor}Numero CERO. Jaja! ${endColor}"$
+                 echo -e "${yellowColor}[+]${endColor} ${greyColor}Saldo total:${endColor} ${yellowColor}$money$ ${endColor}"$
+                initial_bet=$(($initial_bet * 2))
           else
             echo -e "${yellowColor}[+]${endColor} ${greenColor}Numero par. GANASTE!! ${endColor}"
             reward=$(($initial_bet * 2))
@@ -58,10 +60,11 @@ function martingala() {
           echo -e "${yellowColor}[+]${endColor} ${greyColor}Saldo total:${endColor} ${yellowColor}$money$ ${endColor}"
           initial_bet=$(($initial_bet * 2))
         fi
-        sleep 2
+        sleep 0.4 
       fi
     else
-      echo -e "\n te has quedado sin pasta"
+      echo -e "\n ${redColor}[x] Te has quedado sin pasta CABRON!!${endColor}\n"
+      tput cnorm
       exit 0
     fi
 
