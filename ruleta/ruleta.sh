@@ -104,33 +104,81 @@ function inverseLabrouchere() {
 	echo -e "\n${turquesaColor}[!]${endColor} ${greyColor}Cantidad de dinero actual${endColor} ${blueColor}$money${endColor}"
 	echo -ne "${yellowColor}[+]${endColor} ${greyColor}Seleccione un si desea apostar a (par/impar):${endColor} " && read par_impar
 
+	#! incio de mi array
 	declare -a my_secuence=(1 2 3 4)
 
-	echo -e "\n${yellowColor}[+]${endColor} ${greyColor}Comenzamos con la secuencia${endColor} ${turquesaColor}-> [${my_secuence[@]}]${endColor}"
-
+	#! suma de mis extremos array
 	bet=$((${my_secuence[0]} + ${my_secuence[-1]}))
 
-	unset my_secuence[0]
-	unset my_secuence[-1]
-	my_secuence=(${my_secuence[@]})
-	echo -e "${yellowColor}[+]${endColor} ${greyColor}Inviertiendo${endColor} ${yellowColor}$bet$ ${endColor}${greyColor}la secuencia queda en${endColor} ${turquesaColor}-> [${my_secuence[@]}]${endColor}\n"
+	#! OUTPUTS
+	echo -e "\n${yellowColor}[!!]${endColor} ${purpleColor}¡EMPEZANDO EL JUEGO!${endColor} ${yellowColor}[!!]${endColor}"
+	echo -e "${turquesaColor}[!]${endColor} ${greyColor}Apostando la cantidad de dinero${endColor} ${blueColor}$bet${endColor}"
+	echo -e "${turquesaColor}[!]${endColor} ${greyColor}Quedamos con la catidad de dinero${endColor} ${blueColor}$money${endColor}"
+	echo -e "${yellowColor}[+]${endColor} ${greyColor}Comenzamos con la secuencia${endColor} ${turquesaColor}-> [${my_secuence[@]}]${endColor}\n"
 
 	tput civis
 	while true; do
-		random_number="$((RANDOM % 37))"
-		sleep 2
 
-		if [ "$par_impar" == "par" ]; then
-			if [ "$(($random_number % 2))" -eq 0 ]; then
-				echo -e "${yellowColor}[+]${endColor} ${greyColor}Ha salido el numero${endColor} ${yellowColor}$random_number${endColor} ${greyColor}par ¡Ganas!${endColor}\n"
+		#! random number
+		number_random=$(($RANDOM % 37))
 
+		#! resta de money
+		money=$(($money - $bet))
+
+		echo -e "${yellowColor}[+]${endColor} ${greyColor}Invirtiendo${endColor} ${yellowColor}$bet$ ${endColor}\n"
+
+		if [ "$money" -ge 0 ]; then
+			if [ "$par_impar" == "par" ]; then
+				if [ "$(($number_random % 2))" -eq 0 ] && [ "$number_random" -ne 0 ]; then
+
+					reward=$(($bet * 2))
+					money=$(($money + $reward))
+					my_secuence+=($bet)
+					my_secuence=(${my_secuence[@]})
+
+					echo -e "${yellowColor}[+]${endColor} ${greyColor}Ha salido el numero${endColor} ${yellowColor}$number_random${endColor} ${greyColor}¡par! Ganas: ${endColor}${yellowColor}->$reward$<-${endColor}${greyColor} Total: ${endColor}${yellowColor}->$money$<-${endColor}"
+					echo -e "${yellowColor}[+]${endColor} ${greyColor}Nueva secuencia:${endColor} ${turquesaColor}-> [${my_secuence[@]}]${endColor}\n"
+
+					if [ "${#my_secuence[@]}" -ne 1 ]; then
+						bet=$((${my_secuence[0]} + ${my_secuence[-1]}))
+					elif [ "${#my_secuence[@]}" -eq 1 ]; then
+						bet=${my_secuence[0]}
+					fi
+
+				elif [ "$(($number_random % 2))" -eq 1 ] || [ "$number_random" -eq 0 ]; then
+
+					unset my_secuence[0]
+					unset my_secuence[-1] 2>/dev/null
+					my_secuence=(${my_secuence[@]})
+
+					if [ "$(($number_random % 2))" -eq 1 ]; then
+						echo -e "${yellowColor}[x]${endColor} ${redColor}Ha salido el numero${endColor} ${yellowColor}$number_random${endColor} ${redColor}¡impar! perdiste${endColor}${greyColor} Total: ${endColor}${yellowColor}->$money$<-${endColor}"
+						echo -e "${yellowColor}[+]${endColor} ${greyColor}Nueva secuencia:${endColor} ${turquesaColor}-> [${my_secuence[@]}]${endColor}\n"
+					else
+						echo -e "${yellowColor}[x]${endColor} ${redColor}Ha salido el numero${endColor} ${yellowColor}$number_random${endColor} ${redColor}CERO! perdiste${endColor}${greyColor} Total: ${endColor}${yellowColor}->$money$<-${endColor}"
+						echo -e "${yellowColor}[+]${endColor} ${greyColor}Nueva secuencia:${endColor} ${turquesaColor}-> [${my_secuence[@]}]${endColor}\n"
+					fi
+
+					if [ "${#my_secuence[@]}" -eq 0 ]; then
+						my_secuence=(1 2 3 4)
+						echo -e "${redColor}[-] Se ha perdido la secuencia${endColor}"
+						echo -e "${yellowColor}[+]${endColor} ${greyColor}Restableciendo la secuencia:${endColor} ${turquesaColor}-> [${my_secuence[@]}]${endColor}\n"
+						bet=$((${my_secuence[0]} + ${my_secuence[-1]}))
+					elif [ "${#my_secuence[@]}" -ne 1 ]; then
+						bet=$((${my_secuence[0]} + ${my_secuence[-1]}))
+					elif [ "${#my_secuence[@]}" -eq 1 ]; then
+						bet=${my_secuence[0]}
+					fi
+				fi
 			else
-				echo -e "${yellowColor}[x]${endColor} ${redColor}Ha salido el numero${endColor} ${yellowColor}$random_number${endColor} ${redColor}impar ¡Pierdes!${endColor}\n"
+				echo -e "nada que mostrar"
 			fi
+			sleep 0
 		else
-			echo -e "nada que mostrar"
+			echo -e "\n ${redColor}[x] Te has quedado sin pasta CABRON!!${endColor}\n"
+			tput cnorm
+			exit 0
 		fi
-
 	done
 	tput cnorm
 
